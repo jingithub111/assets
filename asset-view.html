@@ -176,7 +176,7 @@
 <script>
 // ======= CONFIG =======
 // ใส่ URL ของ Google Apps Script Web App ที่ deploy แล้ว
-const SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxQezsOT7Dp1GRvirHd9D1BaPo0zM0Oouz75-aSLBv3MyfuC1Ykx2B4UrHdGNhcgHuV/exec';
 
 function getAssetId() {
   const params = new URLSearchParams(window.location.search);
@@ -280,7 +280,7 @@ async function load() {
   if (!id) { showError('ไม่พบรหัสทรัพย์สินใน URL'); return; }
 
   // Demo mode — ถ้ายังไม่ได้ตั้งค่า SCRIPT_URL
-  if (SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+  if (SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbxQezsOT7Dp1GRvirHd9D1BaPo0zM0Oouz75-aSLBv3MyfuC1Ykx2B4UrHdGNhcgHuV/exec') {
     setTimeout(() => render({
       id: id,
       name: 'โน้ตบุ๊ค Dell Latitude 5420',
