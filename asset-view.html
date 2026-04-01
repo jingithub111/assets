@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ข้อมูลทรัพย์สิน</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Sarabun', 'Segoe UI', sans-serif;
+    background: #f0f2f5;
+    min-height: 100vh;
+    padding: 24px 16px;
+  }
+
+  .container { max-width: 480px; margin: 0 auto; }
+
+  .header-card {
+    background: #1a1a2e;
+    border-radius: 20px;
+    padding: 28px 24px 24px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  }
+  .header-card::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 140px; height: 140px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 50%;
+  }
+  .header-card::after {
+    content: '';
+    position: absolute;
+    bottom: -20px; left: -20px;
+    width: 100px; height: 100px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 50%;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 14px;
+  }
+  .status-badge.active { background: rgba(52,211,153,0.2); color: #34d399; }
+  .status-badge.inactive { background: rgba(251,191,36,0.2); color: #fbbf24; }
+  .status-badge.maintenance { background: rgba(248,113,113,0.2); color: #f87171; }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .asset-name {
+    font-size: 22px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+  .asset-id {
+    font-size: 13px;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 0.5px;
+  }
+
+  .info-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .info-card h3 {
+    font-size: 11px;
+    font-weight: 600;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 14px;
+  }
+
+  .info-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .info-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .info-row:first-of-type { padding-top: 0; }
+
+  .info-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .icon-blue { background: #eff6ff; }
+  .icon-green { background: #f0fdf4; }
+  .icon-amber { background: #fffbeb; }
+  .icon-purple { background: #faf5ff; }
+
+  .info-label {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-bottom: 2px;
+  }
+  .info-value {
+    font-size: 15px;
+    color: #1f2937;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  .note-box {
+    background: #fffbeb;
+    border-radius: 12px;
+    border-left: 3px solid #f59e0b;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: #78350f;
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+
+  .footer-text {
+    text-align: center;
+    font-size: 12px;
+    color: #9ca3af;
+    padding: 8px;
+  }
+
+  .loading {
+    text-align: center;
+    padding: 60px 20px;
+  }
+  .loading-spinner {
+    width: 40px; height: 40px;
+    border: 3px solid #e5e7eb;
+    border-top-color: #1a1a2e;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading p { color: #6b7280; font-size: 14px; }
+
+  .error-box {
+    background: #fff;
+    border-radius: 16px;
+    padding: 40px 24px;
+    text-align: center;
+  }
+  .error-icon { font-size: 48px; margin-bottom: 12px; }
+  .error-title { font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 8px; }
+  .error-msg { font-size: 14px; color: #6b7280; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div id="loading" class="loading">
+    <div class="loading-spinner"></div>
+    <p>กำลังโหลดข้อมูล...</p>
+  </div>
+  <div id="content" style="display:none"></div>
+</div>
+
+<script>
+// ======= CONFIG =======
+// ใส่ URL ของ Google Apps Script Web App ที่ deploy แล้ว
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzJIjvg6NUpBNmtarTBAa9Bv2dp3GW2SmeIMaT6RcRbvYhLeKVvRDgMLjsHXw3mfXFK/exec';
+
+function getAssetId() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('id');
+}
+
+function statusLabel(s) {
+  if (!s) return { text: 'ใช้งานอยู่', cls: 'active' };
+  const map = {
+    'active': { text: 'ใช้งานอยู่', cls: 'active' },
+    'inactive': { text: 'ไม่ได้ใช้งาน', cls: 'inactive' },
+    'maintenance': { text: 'ซ่อมบำรุง', cls: 'maintenance' }
+  };
+  return map[s.toLowerCase()] || { text: s, cls: 'active' };
+}
+
+function render(asset) {
+  const st = statusLabel(asset.status);
+  const el = document.getElementById('content');
+  el.innerHTML = `
+    <div class="header-card">
+      <div class="status-badge ${st.cls}">
+        <span class="status-dot"></span>${st.text}
+      </div>
+      <div class="asset-name">${asset.name || '-'}</div>
+      <div class="asset-id"># ${asset.id || '-'}</div>
+    </div>
+
+    <div class="info-card">
+      <h3>ข้อมูลทั่วไป</h3>
+      <div class="info-row">
+        <div class="info-icon icon-blue">📍</div>
+        <div>
+          <div class="info-label">แผนก / ที่ตั้ง</div>
+          <div class="info-value">${asset.location || '-'}</div>
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="info-icon icon-purple">👤</div>
+        <div>
+          <div class="info-label">ผู้รับผิดชอบ</div>
+          <div class="info-value">${asset.owner || '-'}</div>
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="info-icon icon-blue">🏷️</div>
+        <div>
+          <div class="info-label">ประเภท</div>
+          <div class="info-value">${asset.category || '-'}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <h3>การจัดซื้อ</h3>
+      <div class="info-row">
+        <div class="info-icon icon-green">📅</div>
+        <div>
+          <div class="info-label">วันที่ซื้อ</div>
+          <div class="info-value">${asset.purchase_date || '-'}</div>
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="info-icon icon-amber">💰</div>
+        <div>
+          <div class="info-label">ราคา</div>
+          <div class="info-value">${asset.price ? Number(asset.price).toLocaleString('th-TH') + ' บาท' : '-'}</div>
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="info-icon icon-green">🏢</div>
+        <div>
+          <div class="info-label">ผู้จำหน่าย</div>
+          <div class="info-value">${asset.vendor || '-'}</div>
+        </div>
+      </div>
+    </div>
+
+    ${asset.note ? `<div class="note-box">📌 ${asset.note}</div>` : ''}
+
+    <div class="footer-text">อัพเดทล่าสุด: ${asset.updated || '-'}</div>
+  `;
+  document.getElementById('loading').style.display = 'none';
+  el.style.display = 'block';
+}
+
+function showError(msg) {
+  const el = document.getElementById('content');
+  el.innerHTML = `
+    <div class="error-box">
+      <div class="error-icon">🔍</div>
+      <div class="error-title">ไม่พบข้อมูลทรัพย์สิน</div>
+      <div class="error-msg">${msg}</div>
+    </div>`;
+  document.getElementById('loading').style.display = 'none';
+  el.style.display = 'block';
+}
+
+async function load() {
+  const id = getAssetId();
+  if (!id) { showError('ไม่พบรหัสทรัพย์สินใน URL'); return; }
+
+  try {
+    const res = await fetch(`${SCRIPT_URL}?action=get&id=${encodeURIComponent(id)}`);
+    const data = await res.json();
+    if (data.success && data.asset) render(data.asset);
+    else showError(data.message || 'ไม่พบรหัส ' + id);
+  } catch(e) {
+    showError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+  }
+}
+
+load();
+</script>
+</body>
+</html>
