@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบจัดการทรัพย์สิน</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Sarabun','Segoe UI',sans-serif; background:#f5f6fa; color:#1f2937; min-height:100vh; }
+
+/* ── Sidebar ── */
+.sidebar {
+  position: fixed; left:0; top:0; bottom:0; width:220px;
+  background:#1a1a2e; padding:24px 0;
+  display:flex; flex-direction:column;
+  z-index: 1000;
+  transition: transform 0.3s ease;
+}
+.logo { padding:0 20px 24px; border-bottom:1px solid rgba(255,255,255,0.08); margin-bottom:16px; }
+.logo-title { font-size:16px; font-weight:600; color:#fff; }
+.logo-sub { font-size:11px; color:rgba(255,255,255,0.35); margin-top:2px; }
+
+.nav-item {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 20px; cursor:pointer;
+  font-size:14px; color:rgba(255,255,255,0.55);
+  transition:all 0.15s; border-left:3px solid transparent;
+}
+.nav-item:hover { color:rgba(255,255,255,0.85); background:rgba(255,255,255,0.05); }
+.nav-item.active { color:#fff; background:rgba(255,255,255,0.08); border-left-color:#6366f1; }
+.nav-icon { font-size:16px; width:20px; text-align:center; }
+
+/* ── Mobile Menu Toggle ── */
+.menu-toggle {
+  display: none;
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 1100;
+  background: #1a1a2e;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* ── Main ── */
+.main { margin-left:220px; padding:28px; min-height:100vh; transition: margin-left 0.3s ease; }
+.page { display:none; }
+.page.active { display:block; }
+
+.page-title { font-size:20px; font-weight:600; margin-bottom:6px; }
+.page-sub { font-size:13px; color:#6b7280; margin-bottom:24px; }
+
+/* ── Stats bar ── */
+.stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; }
+.stat-card {
+  background:#fff; border-radius:12px; padding:16px;
+  border:1px solid #e5e7eb;
+}
+.stat-label { font-size:12px; color:#9ca3af; margin-bottom:6px; }
+.stat-value { font-size:24px; font-weight:600; color:#1f2937; }
+.stat-value.green { color:#10b981; }
+.stat-value.amber { color:#f59e0b; }
+.stat-value.red { color:#ef4444; }
+
+/* ── Table ── */
+.card {
+  background:#fff; border-radius:14px;
+  border:1px solid #e5e7eb; overflow:hidden;
+}
+.card-header {
+  padding:16px 20px; border-bottom:1px solid #f3f4f6;
+  display:flex; align-items:center; justify-content:space-between;
+  flex-wrap: wrap; gap: 10px;
+}
+.card-header h3 { font-size:15px; font-weight:600; }
+
+.search-row { display:flex; gap:10px; flex-wrap: wrap; }
+.search-input {
+  padding:7px 12px; border:1px solid #e5e7eb; border-radius:8px;
+  font-size:13px; font-family:inherit; width:220px; outline:none;
+  transition:border-color 0.15s;
+}
+.search-input:focus { border-color:#6366f1; }
+
+.btn {
+  padding:7px 16px; border-radius:8px; border:none; cursor:pointer;
+  font-size:13px; font-family:inherit; font-weight:500; transition:all 0.15s;
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+}
+.btn-primary { background:#6366f1; color:#fff; }
+.btn-primary:hover { background:#4f46e5; }
+.btn-sm { padding:5px 12px; font-size:12px; }
+.btn-outline { background:#fff; border:1px solid #e5e7eb; color:#374151; }
+.btn-outline:hover { background:#f9fafb; }
+.btn-danger { background:#fff; border:1px solid #fee2e2; color:#dc2626; }
+.btn-danger:hover { background:#fef2f2; }
+
+.table-responsive { overflow-x: auto; }
+table { width:100%; border-collapse:collapse; min-width: 800px; }
+th {
+  text-align:left; padding:11px 16px;
+  font-size:11px; font-weight:600; color:#9ca3af;
+  text-transform:uppercase; letter-spacing:0.5px;
+  background:#f9fafb; border-bottom:1px solid #f3f4f6;
+}
+td { padding:12px 16px; font-size:14px; border-bottom:1px solid #f9fafb; vertical-align:middle; }
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:#f9fafb; }
+
+.badge {
+  display:inline-block; padding:3px 10px; border-radius:20px;
+  font-size:11px; font-weight:500;
+}
+.badge-active { background:#d1fae5; color:#065f46; }
+.badge-inactive { background:#fef3c7; color:#78350f; }
+.badge-maintenance { background:#fee2e2; color:#991b1b; }
+
+/* ── Form ── */
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:20px; }
+.form-group { display:flex; flex-direction:column; gap:6px; }
+.form-group.full { grid-column:1/-1; }
+label { font-size:12px; font-weight:500; color:#374151; }
+input, select, textarea {
+  padding:9px 12px; border:1px solid #e5e7eb; border-radius:8px;
+  font-size:14px; font-family:inherit; outline:none;
+  transition:border-color 0.15s; background:#fff;
+}
+input:focus, select:focus, textarea:focus { border-color:#6366f1; }
+textarea { resize:vertical; min-height:80px; }
+
+.form-footer {
+  padding:16px 20px; border-top:1px solid #f3f4f6;
+  display:flex; gap:10px; justify-content:flex-end;
+}
+
+/* ── QR Section ── */
+.qr-wrap {
+  display:flex; gap:20px; flex-wrap: wrap;
+}
+.qr-form { flex:1; min-width: 300px; }
+.qr-preview {
+  width:260px; background:#fff;
+  border-radius:14px; border:1px solid #e5e7eb;
+  padding:20px; text-align:center; flex-shrink:0;
+  margin: 0 auto;
+}
+.qr-preview h4 { font-size:13px; color:#6b7280; margin-bottom:12px; }
+#qrCanvas { display:block; margin:0 auto 12px; }
+.qr-asset-name { font-size:14px; font-weight:600; margin-bottom:4px; }
+.qr-asset-id { font-size:12px; color:#9ca3af; margin-bottom:14px; }
+
+/* ── Modal ── */
+.modal-bg {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,0.4); z-index:100;
+  align-items:center; justify-content:center;
+}
+.modal-bg.show { display:flex; }
+.modal {
+  background:#fff; border-radius:16px;
+  padding:24px; width:480px; max-width:90vw;
+  max-height:90vh; overflow-y:auto;
+}
+.modal-header {
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;
+}
+.modal-title { font-size:17px; font-weight:600; }
+.modal-close { border:none; background:none; cursor:pointer; font-size:20px; color:#9ca3af; }
+
+/* ── Print label ── */
+.print-label {
+  display:none; position:fixed; inset:0;
+  background:#fff; z-index:200; padding:40px;
+  align-items:center; justify-content:center; flex-direction:column;
+}
+.print-label.show { display:flex; }
+.label-card {
+  border:2px solid #1a1a2e; border-radius:12px;
+  padding:20px 24px; display:flex; align-items:center; gap:20px;
+  width:340px;
+}
+.label-info { flex:1; }
+.label-id { font-size:11px; color:#6b7280; letter-spacing:0.5px; }
+.label-name { font-size:16px; font-weight:600; margin:3px 0; }
+.label-dept { font-size:12px; color:#6b7280; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .menu-toggle { display: block; }
+  .main { margin-left: 0; padding: 60px 15px 20px; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .form-grid { grid-template-columns: 1fr; }
+  .search-input { width: 100%; }
+  .card-header { flex-direction: column; align-items: flex-start; }
+  .search-row { width: 100%; }
+}
+
+@media print {
+  body > *:not(.print-label) { display:none !important; }
+  .print-label { display:flex !important; position:static; }
+  .no-print { display:none !important; }
+}
+</style>
+</head>
+<body>
+
+<button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+  <div class="logo">
+    <div class="logo-title">🏢 AssetQR</div>
+    <div class="logo-sub">ระบบทรัพย์สิน</div>
+  </div>
+  <div class="nav-item active" onclick="showPage('list')">
+    <span class="nav-icon">📋</span> รายการทรัพย์สิน
+  </div>
+  <div class="nav-item" onclick="showPage('add')">
+    <span class="nav-icon">➕</span> เพิ่มทรัพย์สิน
+  </div>
+  <div class="nav-item" onclick="showPage('qr')">
+    <span class="nav-icon">⬛</span> สร้าง QR Code
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Page: List -->
+  <div class="page active" id="page-list">
+    <div class="page-title">รายการทรัพย์สินทั้งหมด</div>
+    <div class="page-sub">จัดการและติดตามทรัพย์สินของบริษัท</div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">ทั้งหมด</div>
+        <div class="stat-value" id="stat-total">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">ใช้งานอยู่</div>
+        <div class="stat-value green" id="stat-active">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">ซ่อมบำรุง</div>
+        <div class="stat-value red" id="stat-maint">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">มูลค่ารวม</div>
+        <div class="stat-value amber" id="stat-value">฿0</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>ทรัพย์สิน</h3>
+        <div class="search-row">
+          <input class="search-input" placeholder="🔍 ค้นหา..." oninput="filterTable(this.value)">
+          <button class="btn btn-primary" onclick="showPage('add')">+ เพิ่มใหม่</button>
+          <button class="btn btn-outline" onclick="fetchFromSheet()">🔄 ดึงข้อมูลจาก Sheet</button>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table id="asset-table">
+          <thead>
+            <tr>
+              <th>รหัส</th><th>ชื่อทรัพย์สิน</th><th>ประเภท</th>
+              <th>แผนก/ที่ตั้ง</th><th>ผู้รับผิดชอบ</th>
+              <th>ราคา (บาท)</th><th>สถานะ</th><th>จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="asset-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page: Add -->
+  <div class="page" id="page-add">
+    <div class="page-title">เพิ่ม / แก้ไขทรัพย์สิน</div>
+    <div class="page-sub">กรอกข้อมูลให้ครบถ้วน แล้วกด "บันทึก"</div>
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>รหัสทรัพย์สิน *</label>
+          <input id="f-id" placeholder="เช่น AST-2025-001" maxlength="30">
+        </div>
+        <div class="form-group">
+          <label>ชื่อทรัพย์สิน *</label>
+          <input id="f-name" placeholder="เช่น โน้ตบุ๊ค Dell Latitude">
+        </div>
+        <div class="form-group">
+          <label>ประเภท</label>
+          <select id="f-category">
+            <option value="">-- เลือกประเภท --</option>
+            <option>อุปกรณ์คอมพิวเตอร์</option>
+            <option>อุปกรณ์สำนักงาน</option>
+            <option>เฟอร์นิเจอร์</option>
+            <option>ยานพาหนะ</option>
+            <option>เครื่องจักร</option>
+            <option>อื่นๆ</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>สถานะ</label>
+          <select id="f-status">
+            <option value="active">ใช้งานอยู่</option>
+            <option value="inactive">ไม่ได้ใช้งาน</option>
+            <option value="maintenance">ซ่อมบำรุง</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>แผนก / ที่ตั้ง</label>
+          <input id="f-location" placeholder="เช่น แผนกบัญชี ชั้น 2">
+        </div>
+        <div class="form-group">
+          <label>ผู้รับผิดชอบ</label>
+          <input id="f-owner" placeholder="ชื่อผู้ดูแล">
+        </div>
+        <div class="form-group">
+          <label>วันที่ซื้อ</label>
+          <input id="f-date" type="date">
+        </div>
+        <div class="form-group">
+          <label>ราคา (บาท)</label>
+          <input id="f-price" type="number">
+        </div>
+        <div class="form-group">
+          <label>ผู้จำหน่าย</label>
+          <input id="f-vendor" placeholder="ชื่อบริษัทผู้ขาย">
+        </div>
+        <div class="form-group full">
+          <label>หมายเหตุ</label>
+          <textarea id="f-note" placeholder="ข้อมูลเพิ่มเติม เช่น รหัสรับประกัน หมายเลข Serial Number..."></textarea>
+        </div>
+      </div>
+      <div class="form-footer">
+        <button class="btn btn-outline" onclick="clearForm(); showPage('list')">ยกเลิก</button>
+        <button class="btn btn-primary" id="btn-save" onclick="saveAsset()">💾 บันทึกทรัพย์สิน</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page: QR Generator -->
+  <div class="page" id="page-qr">
+    <div class="page-title">สร้าง QR Code</div>
+    <div class="page-sub">เลือกทรัพย์สินแล้วสร้าง QR Code สำหรับพิมพ์ติด</div>
+    <div class="qr-wrap">
+      <div class="qr-form card" style="padding:20px">
+        <div class="form-group" style="margin-bottom:16px">
+          <label>เลือกทรัพย์สิน</label>
+          <select id="qr-select" onchange="pickAssetQR(this.value)" style="font-size:14px;padding:9px 12px">
+            <option value="">-- เลือกรายการ --</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:16px">
+          <label>Base URL ของหน้าแสดงผล (GitHub Pages)</label>
+          <input id="qr-base-url" placeholder="https://username.github.io/repo-name/" value="">
+        </div>
+        <button class="btn btn-primary" onclick="generateQR()" style="width:100%;margin-bottom:12px">⬛ สร้าง QR Code</button>
+        <button class="btn btn-outline" onclick="printLabel()" style="width:100%">🖨️ พิมพ์ป้ายติดทรัพย์สิน</button>
+      </div>
+
+      <div class="qr-preview">
+        <h4>ตัวอย่าง QR Code</h4>
+        <canvas id="qrCanvas" width="180" height="180"></canvas>
+        <div class="qr-asset-name" id="qr-preview-name">-</div>
+        <div class="qr-asset-id" id="qr-preview-id">-</div>
+        <button class="btn btn-outline btn-sm" onclick="downloadQR()" style="width:100%">💾 ดาวน์โหลด PNG</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Print Label -->
+<div class="print-label" id="print-label">
+  <div class="label-card">
+    <canvas id="print-qr" width="100" height="100"></canvas>
+    <div class="label-info">
+      <div class="label-id" id="print-id"></div>
+      <div class="label-name" id="print-name"></div>
+      <div class="label-dept" id="print-dept"></div>
+    </div>
+  </div>
+  <div style="margin-top:24px;display:flex;gap:12px" class="no-print">
+    <button class="btn btn-primary" onclick="window.print()">🖨️ พิมพ์จริง</button>
+    <button class="btn btn-outline" onclick="document.getElementById('print-label').classList.remove('show')">ปิด</button>
+  </div>
+</div>
+
+<!-- QRCode library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script>
+// ======= CONFIG =======
+// ใส่ URL Apps Script ของคุณที่นี่
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzJIjvg6NUpBNmtarTBAa9Bv2dp3GW2SmeIMaT6RcRbvYhLeKVvRDgMLjsHXw3mfXFK/exec'; 
+// ใส่ URL GitHub Pages ของคุณที่นี่
+const BASE_VIEW_URL = 'https://jingithub111.github.io/assets/'; 
+
+// ======= Data =======
+let assets = JSON.parse(localStorage.getItem('assets') || '[]');
+let editingId = null;
+
+function saveData() { localStorage.setItem('assets', JSON.stringify(assets)); }
+
+// ======= Sidebar Toggle =======
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ======= Pages =======
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  
+  const navItems = document.querySelectorAll('.nav-item');
+  if (name === 'list') navItems[0].classList.add('active');
+  if (name === 'add') navItems[1].classList.add('active');
+  if (name === 'qr') navItems[2].classList.add('active');
+  
+  if (name === 'list') renderTable();
+  if (name === 'qr') populateQRSelect();
+  
+  // Close sidebar on mobile after selection
+  if (window.innerWidth <= 768) {
+    document.getElementById('sidebar').classList.remove('open');
+  }
+}
+
+// ======= Stats =======
+function updateStats() {
+  const total = assets.length;
+  const active = assets.filter(a => a.status === 'active').length;
+  const maint = assets.filter(a => a.status === 'maintenance').length;
+  const value = assets.reduce((s,a) => s + (Number(a.price)||0), 0);
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-active').textContent = active;
+  document.getElementById('stat-maint').textContent = maint;
+  document.getElementById('stat-value').textContent = '฿' + value.toLocaleString('th-TH');
+}
+
+// ======= Table =======
+function badgeCls(s) {
+  return s === 'active' ? 'badge-active' : s === 'maintenance' ? 'badge-maintenance' : 'badge-inactive';
+}
+function badgeTxt(s) {
+  return s === 'active' ? 'ใช้งานอยู่' : s === 'maintenance' ? 'ซ่อมบำรุง' : 'ไม่ได้ใช้งาน';
+}
+
+function renderTable(filter = '') {
+  updateStats();
+  const tbody = document.getElementById('asset-tbody');
+  const list = filter ? assets.filter(a =>
+    [a.id,a.name,a.category,a.location,a.owner].join(' ').toLowerCase().includes(filter.toLowerCase())
+  ) : assets;
+
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#9ca3af">ไม่พบข้อมูลทรัพย์สิน</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map(a => `
+    <tr>
+      <td style="font-weight:500;color:#6366f1">${a.id}</td>
+      <td>${a.name}</td>
+      <td><span style="font-size:12px;color:#6b7280">${a.category||'-'}</span></td>
+      <td>${a.location||'-'}</td>
+      <td>${a.owner||'-'}</td>
+      <td>${a.price ? Number(a.price).toLocaleString('th-TH') : '-'}</td>
+      <td><span class="badge ${badgeCls(a.status)}">${badgeTxt(a.status)}</span></td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-outline btn-sm" onclick="editAsset('${a.id}')" title="แก้ไข">✏️</button>
+          <button class="btn btn-outline btn-sm" onclick="quickQR('${a.id}')" title="สร้าง QR">⬛</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteAsset('${a.id}')" title="ลบ">🗑️</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function filterTable(v) { renderTable(v); }
+
+// ======= Sync with Google Sheet =======
+async function fetchFromSheet() {
+  if (!SCRIPT_URL || SCRIPT_URL.includes('https://script.google.com/macros/s/AKfycbzJIjvg6NUpBNmtarTBAa9Bv2dp3GW2SmeIMaT6RcRbvYhLeKVvRDgMLjsHXw3mfXFK/exec')) {
+    alert('กรุณาตั้งค่า SCRIPT_URL ในโค้ดก่อนครับ');
+    return;
+  }
+  
+  const btn = event.target;
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '⏳ กำลังโหลด...';
+  btn.disabled = true;
+
+  try {
+    const response = await fetch(`${SCRIPT_URL}?action=list`);
+    const data = await response.json();
+    if (data.success) {
+      assets = data.assets;
+      saveData();
+      renderTable();
+      alert('ดึงข้อมูลจาก Google Sheet สำเร็จ!');
+    } else {
+      alert('เกิดข้อผิดพลาด: ' + data.message);
+    }
+  } catch (error) {
+    console.error(error);
+    alert('ไม่สามารถเชื่อมต่อกับ Google Sheet ได้');
+  } finally {
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  }
+}
+
+// ======= Save Asset =======
+async function saveAsset() {
+  const id = document.getElementById('f-id').value.trim();
+  const name = document.getElementById('f-name').value.trim();
+  if (!id || !name) { alert('กรุณากรอกรหัสและชื่อทรัพย์สิน'); return; }
+
+  const btn = document.getElementById('btn-save');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '⏳ กำลังบันทึก...';
+  btn.disabled = true;
+
+  const asset = {
+    id, name,
+    category: document.getElementById('f-category').value,
+    status: document.getElementById('f-status').value,
+    location: document.getElementById('f-location').value,
+    owner: document.getElementById('f-owner').value,
+    purchase_date: document.getElementById('f-date').value,
+    price: document.getElementById('f-price').value,
+    vendor: document.getElementById('f-vendor').value,
+    note: document.getElementById('f-note').value,
+    updated: new Date().toLocaleDateString('th-TH'),
+  };
+
+  // Update Local Storage
+  const idx = assets.findIndex(a => a.id === id);
+  if (idx >= 0) assets[idx] = asset;
+  else assets.unshift(asset);
+  saveData();
+
+  // Sync to Google Sheet via POST
+  try {
+    const response = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors', // Google Apps Script requires no-cors for POST from different origin
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'save', asset: asset })
+    });
+    // Since we use no-cors, we can't read the response, but the data is sent
+    console.log('ส่งข้อมูลไปบันทึกแล้ว');
+    alert('บันทึกข้อมูลเรียบร้อยแล้ว!');
+    clearForm();
+    showPage('list');
+  } catch (error) {
+    console.error('Error:', error);
+    alert('บันทึกในเครื่องสำเร็จ แต่ไม่สามารถส่งข้อมูลไปยัง Google Sheet ได้');
+    showPage('list');
+  } finally {
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  }
+}
+
+function clearForm() {
+  ['f-id','f-name','f-category','f-status','f-location','f-owner','f-date','f-price','f-vendor','f-note']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.value = el.tagName === 'SELECT' ? (id === 'f-status' ? 'active' : '') : '';
+        if (id === 'f-id') el.disabled = false;
+      }
+    });
+}
+
+function editAsset(id) {
+  const a = assets.find(x => x.id === id);
+  if (!a) return;
+  showPage('add');
+  setTimeout(() => {
+    document.getElementById('f-id').value = a.id;
+    document.getElementById('f-id').disabled = true;
+    document.getElementById('f-name').value = a.name;
+    document.getElementById('f-category').value = a.category||'';
+    document.getElementById('f-status').value = a.status||'active';
+    document.getElementById('f-location').value = a.location||'';
+    document.getElementById('f-owner').value = a.owner||'';
+    document.getElementById('f-date').value = a.purchase_date||'';
+    document.getElementById('f-price').value = a.price||'';
+    document.getElementById('f-vendor').value = a.vendor||'';
+    document.getElementById('f-note').value = a.note||'';
+  }, 50);
+}
+
+async function deleteAsset(id) {
+  if (!confirm('ลบทรัพย์สิน ' + id + ' ใช่ไหม?')) return;
+  
+  assets = assets.filter(a => a.id !== id);
+  saveData(); 
+  renderTable();
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify({ action: 'delete', id: id })
+    });
+  } catch (e) {}
+}
+
+// ======= QR Code =======
+let qrCurrentAsset = null;
+
+function makeQRUrl(assetId) {
+  const base = document.getElementById('qr-base-url')?.value || BASE_VIEW_URL;
+  return `${base}?id=${encodeURIComponent(assetId)}`;
+}
+
+function populateQRSelect() {
+  const sel = document.getElementById('qr-select');
+  sel.innerHTML = '<option value="">-- เลือกรายการ --</option>' +
+    assets.map(a => `<option value="${a.id}">${a.id} — ${a.name}</option>`).join('');
+  document.getElementById('qr-base-url').value = BASE_VIEW_URL;
+}
+
+function pickAssetQR(id) {
+  qrCurrentAsset = assets.find(a => a.id === id);
+  if (qrCurrentAsset) generateQR();
+}
+
+function drawQRToCanvas(canvasId, url, size) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const div = document.createElement('div');
+  new QRCode(div, { text: url, width: size, height: size, correctLevel: QRCode.CorrectLevel.M });
+  setTimeout(() => {
+    const img = div.querySelector('img');
+    if (img) {
+      img.onload = () => ctx.drawImage(img, 0, 0, size, size);
+      if (img.complete) ctx.drawImage(img, 0, 0, size, size);
+    }
+  }, 200);
+}
+
+function generateQR() {
+  if (!qrCurrentAsset) { alert('กรุณาเลือกทรัพย์สินก่อน'); return; }
+  const url = makeQRUrl(qrCurrentAsset.id);
+  drawQRToCanvas('qrCanvas', url, 180);
+  document.getElementById('qr-preview-name').textContent = qrCurrentAsset.name;
+  document.getElementById('qr-preview-id').textContent = '# ' + qrCurrentAsset.id;
+}
+
+function downloadQR() {
+  if (!qrCurrentAsset) return;
+  const canvas = document.getElementById('qrCanvas');
+  const a = document.createElement('a');
+  a.download = `QR_${qrCurrentAsset.id}.png`;
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+function quickQR(id) {
+  showPage('qr');
+  setTimeout(() => {
+    document.getElementById('qr-select').value = id;
+    pickAssetQR(id);
+  }, 100);
+}
+
+function printLabel() {
+  if (!qrCurrentAsset) { alert('กรุณาเลือกและสร้าง QR Code ก่อน'); return; }
+  const url = makeQRUrl(qrCurrentAsset.id);
+  drawQRToCanvas('print-qr', url, 100);
+  document.getElementById('print-id').textContent = '# ' + qrCurrentAsset.id;
+  document.getElementById('print-name').textContent = qrCurrentAsset.name;
+  document.getElementById('print-dept').textContent = (qrCurrentAsset.location || '') + (qrCurrentAsset.owner ? ' · ' + qrCurrentAsset.owner : '');
+  document.getElementById('print-label').classList.add('show');
+}
+
+// Init
+renderTable();
+</script>
+</body>
+</html>
